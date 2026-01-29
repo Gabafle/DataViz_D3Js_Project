@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Empreinte Carbone Interactive - France & Monde</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/topojson@3"></script>
+<style>
+    body { font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f5f5f5; color:#333; margin:0; padding:0; }
+    h1,h2 { text-align:center; margin:20px 0; }
+    .chart-container { width:95%; max-width:1100px; margin:40px auto; position:relative; background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    svg { display:block; margin:auto; overflow: visible; }
+    .tooltip { position:absolute; background:rgba(0,0,0,0.8); color:#fff; padding:8px 12px; border-radius:6px; pointer-events:none; font-size:13px; opacity:0; z-index: 1000; }
+    
+    /* Style du Switch */
+    .switch-wrapper { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 30px; font-weight: 600; font-size: 14px; color: #666; }
+    .switch-label.active { color: #2c3e50; }
+    .slider { position:relative; width:50px; height:26px; background:#ccc; border-radius:20px; cursor:pointer; transition: background 0.3s; }
+    .slider.active-total { background: #4CAF50; }
+    .slider.active-capita { background: #2196F3; }
+    .slider-circle { position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:3px; left:3px; transition:all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    
+    /* Titre et Sous-titre de la Carte */
+    .map-header { margin-bottom: 30px; } /* Ajout de l'espace ici */
+    .map-subtitle { text-align: center; font-size: 14px; color: #666; margin-top: 5px; }
+
+    /* Bulle d'info flottante */
+    .info-bubble { position: absolute; left: 20px; top: 150px; width: 220px; background: #e3f2fd; border: 2px solid #2196f3; padding: 15px; border-radius: 15px; font-size: 13px; line-height: 1.4; box-shadow: 0 4px 6px rgba(0,0,0,0.05); animation: pulse 2s infinite; }
+    .info-bubble b { color: #1976d2; display: block; margin-bottom: 5px; }
+    .info-bubble.inactive { border-color: #bbb; background: #f9f9f9; animation: none; opacity: 0.7; }
+
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 4px 6px rgba(33, 150, 243, 0.1); }
+        50% { transform: scale(1.02); box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3); }
+        100% { transform: scale(1); box-shadow: 0 4px 6px rgba(33, 150, 243, 0.1); }
+    }
+
+    #backBtn { display: none; position: absolute; top: 110px; left: 50%; transform: translateX(-50%); padding: 8px 16px; background: #2ca02c; color: #fff; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; z-index: 5; }
+
+    .legend { display:flex; justify-content:center; gap:25px; margin-top:30px; flex-wrap:wrap; padding: 10px; border-top: 1px solid #eee; }
+    .legend-item { display:flex; align-items:center; gap:8px; font-size:13px; font-weight: 500; }
+    .legend-item span { width:18px; height:18px; display:inline-block; border-radius:4px; }
+    
+    #yearSelector { display:block; margin:10px auto 25px; font-size:16px; padding:6px 12px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; }
+    .labelText { font-size:12px; fill:#222; font-weight:700; pointer-events: none; }
+    .polyline { fill: none; stroke: #666; stroke-width: 1.5px; opacity: 0.5; pointer-events: none; }
+
+    .info-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0; }
+    .info-card { background: #fafafa; padding: 15px; border-radius: 8px; border-left: 5px solid #ccc; font-size: 13px; }
+    .info-card h4 { margin-top: 0; margin-bottom: 8px; font-size: 14px; }
+    .card-direct { border-left-color: #1f77b4; }
+    .card-prod { border-left-color: #ff7f0e; }
+    .card-imp { border-left-color: #2ca02c; }
+    .card-imp-final { border-left-color: #98df8a; }
+    .card-imp-inter { border-left-color: #2ca02c; background: #f0f7f0; }
+
+    .clickable { cursor: pointer !important; filter: brightness(1.2); stroke: #000 !important; stroke-width: 1px !important; }
+
+    /* Map Styles */
+    .country { stroke: #fff; stroke-width: 0.5px; transition: opacity 0.2s; }
+    .country:hover { opacity: 0.8; stroke: #333; stroke-width: 1px; }
+    .map-legend-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; padding-bottom: 10px; }
+    .map-legend-bar { width: 300px; height: 15px; border-radius: 4px; }
+    .map-legend-labels { width: 300px; display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px; }
+</style>
+</head>
+<body>
+
+<h1>Analyse de l'Empreinte Carbone (1990-2024) en France</h1>
+
+<div class="chart-container">
+  <h2 id="main-title">Empreinte carbone par personne (tonne par personne) en france de 1990 à 2024</h2>
+  <div class="switch-wrapper">
+    <span id="label-capita" class="switch-label active">Par personne</span>
+    <div class="slider active-capita" id="modeSlider">
+      <div class="slider-circle" id="sliderCircle"></div>
+    </div>
+    <span id="label-total" class="switch-label">Empreinte totale</span>
+  </div>
+  <svg id="main-chart" width="900" height="400"></svg>
+</div>
+
+<div class="chart-container">
+    <div class="map-header">
+        <h2>COMPARAISON INTERNATIONALE D’EMPREINTE CARBONE - 2022</h2>
+        <div class="map-subtitle">Émissions par personne en t CO2 éq</div>
+    </div>
+    <svg id="world-map" width="900" height="500"></svg>
+    <div class="map-legend-container">
+        <div id="map-gradient" class="map-legend-bar"></div>
+        <div class="map-legend-labels">
+            <span>Moins polluant (Vert)</span>
+            <span>Plus polluant (Rouge)</span>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+  <h2 id="pie-title">Répartition des émissions de Carbonne par année en Million de tonne</h2>
+  <div id="infoBubble" class="info-bubble">
+      <b>Exploration disponible</b>
+      Depuis 2010, cliquez sur la partie <b>Importations</b> pour voir le détail.
+  </div>
+  <select id="yearSelector"></select>
+  <button id="backBtn">← Retour à la vue générale</button>
+  <svg id="pie" width="950" height="500"></svg>
+  <div class="legend" id="pie-legend"></div>
+  <div class="info-section">
+      <div class="info-card card-direct"><h4>Émissions directes</h4><p>Chauffage domestique et carburant pour véhicules personnels.</p></div>
+      <div class="info-card card-prod"><h4>Production intérieure</h4><p>Gaz émis sur le sol français pour produire ce que nous consommons.</p></div>
+      <div class="info-card card-imp"><h4>Importations (Global)</h4><p>Émissions générées à l'étranger pour nos produits importés.</p></div>
+      <div class="info-card card-imp-final"><h4>Usage Final</h4><p>Émissions liées aux produits importés finis.</p></div>
+      <div class="info-card card-imp-inter"><h4>Consommation Intermédiaire</h4><p>Émissions liées aux composants ou matières premières importés.</p></div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const tooltip = d3.select("#tooltip");
+
+// CHARGEMENT DES DONNÉES
+Promise.all([
+    d3.dsv(";", "./source/EmpreinteCarbonne1990_2024.csv", d => ({
+        annee: +d.annee, perCapita: +d.perCapita, total: +d.total,
+        direct: +d.direct, production: +d.production, imports: +d.imports,
+        importsFinal: +d.importsFinal, importsIntermediate: +d.importsIntermediate
+    })),
+    d3.dsv(";", "./source/ComparaisonInternationnalDempreinteCarbonne2022.csv", d => ({
+        pays: d.pays,
+        valeur: parseFloat(d["2022"].replace(',', '.'))
+    })),
+    d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+]).then(([dataCSV, dataMap, world]) => {
+
+    // --- 1. GRAPHIQUE LINÉAIRE ---
+    const svgLine = d3.select("#main-chart");
+    const wL = +svgLine.attr("width") - 100, hL = +svgLine.attr("height") - 80;
+    const gL = svgLine.append("g").attr("transform","translate(70,40)");
+    const x = d3.scaleLinear().domain(d3.extent(dataCSV, d=>d.annee)).range([0,wL]);
+    const yScales = { 
+        perCapita: d3.scaleLinear().domain([8, 13]).range([hL,0]), 
+        total: d3.scaleLinear().domain([500, 850]).range([hL,0]) 
+    };
+    let mode = "perCapita";
+    const yAxis = gL.append("g");
+    const xAxis = gL.append("g").attr("transform",`translate(0,${hL})`);
+
+    function updateLine() {
+        yAxis.transition().duration(800).call(d3.axisLeft(yScales[mode]));
+        xAxis.call(d3.axisBottom(x).tickFormat(d3.format("d")));
+        const line = d3.line().x(d=>x(d.annee)).y(d=>yScales[mode](d[mode])).curve(d3.curveMonotoneX);
+        let path = gL.selectAll(".line-path").data([dataCSV]);
+        path.enter().append("path").attr("class", "line-path").merge(path).transition().duration(800)
+            .attr("fill","none").attr("stroke", mode==="perCapita"?"#2196F3":"#4CAF50").attr("stroke-width",3).attr("d",line);
+        let dots = gL.selectAll(".dot").data(dataCSV);
+        dots.enter().append("circle").attr("class", "dot").merge(dots).transition().duration(800)
+            .attr("cx", d=>x(d.annee)).attr("cy", d=>yScales[mode](d[mode])).attr("r",5).attr("fill", mode==="perCapita"?"#FF9800":"#E91E63");
+    }
+    updateLine();
+
+    d3.select("#modeSlider").on("click", function(){
+        mode = mode === "perCapita" ? "total" : "perCapita";
+        const isCapita = mode === "perCapita";
+        d3.select("#sliderCircle").style("left", isCapita ? "3px" : "27px");
+        d3.select("#modeSlider").classed("active-capita", isCapita).classed("active-total", !isCapita);
+        d3.select("#label-capita").classed("active", isCapita);
+        d3.select("#label-total").classed("active", !isCapita);
+        d3.select("#main-title").text(`Empreinte carbone ${isCapita ? "par personne (tonne par personne)" : "totale (millions de tonnes)"} en france de 1990 à 2024`);
+        updateLine();
+    });
+
+    // --- 2. CARTE MONDIALE ---
+    const svgMap = d3.select("#world-map");
+    const projection = d3.geoMercator().scale(130).translate([450, 350]);
+    const pathGenerator = d3.geoPath().projection(projection);
+
+    const colorScale = d3.scaleSequential(d3.interpolateRdYlGn)
+                        .domain([d3.max(dataMap, d => d.valeur), 0]);
+
+    d3.select("#map-gradient").style("background", `linear-gradient(to right, ${d3.interpolateRdYlGn(1)}, ${d3.interpolateRdYlGn(0)})`);
+
+    const countries = topojson.feature(world, world.objects.countries).features;
+    const dataMapDict = {};
+    dataMap.forEach(d => { dataMapDict[d.pays] = d.valeur; });
+
+    const nameFixes = { "United States of America": "USA", "Saudi Arabia": "Arabie saoudite", "Germany": "Allemagne", "Russia": "Russie", "China": "Chine", "France": "France", "Turkey": "Turquie", "Argentina": "Argentine", "South Africa": "Afrique du Sud", "Brazil": "Brésil", "Indonesia": "Indonésie", "India": "Inde", "Australia": "Australie", "Luxembourg": "Luxembourg" };
+
+    svgMap.append("g")
+        .selectAll("path")
+        .data(countries)
+        .enter().append("path")
+        .attr("class", "country")
+        .attr("d", pathGenerator)
+        .attr("fill", d => {
+            const geoName = d.properties.name;
+            
+            const nameInCSV = nameFixes[geoName] || geoName;
+            const val = dataMapDict[nameInCSV];
+
+
+            return val ? colorScale(val) : "#eee";
+        })
+        .on("mouseover", (event, d) => {
+            const name = nameFixes[d.properties.name] || d.properties.name;
+            const val = dataMapDict[name];
+            tooltip.style("opacity", 1).html(`<b>${name}</b><br>${val ? val + " t CO2 éq/pers" : "Données non disponibles"}`);
+        })
+        .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => tooltip.style("opacity", 0));
+
+
+    // --- 3. CAMEMBERT INTERACTIF ---
+    const svgPie = d3.select("#pie");
+    const wP = +svgPie.attr("width"), hP = +svgPie.attr("height");
+    const radius = 140;
+    const gPie = svgPie.append("g").attr("transform", `translate(${wP/2},${hP/2})`);
+    const pie = d3.pie().value(d => d.value).sort(null).padAngle(0.02);
+    const arc = d3.arc().innerRadius(radius * 0.4).outerRadius(radius);
+    const outerArc = d3.arc().innerRadius(radius * 1.1).outerRadius(radius * 1.1);
+
+    const yearSelector = d3.select("#yearSelector");
+    dataCSV.forEach(d => yearSelector.append("option").attr("value", d.annee).text(d.annee));
+    let currentYear = dataCSV[0].annee;
+
+    function drawPie(data, isDetail = false) {
+        d3.select("#backBtn").style("display", isDetail ? "block" : "none");
+        const hasDetail = currentYear >= 2010;
+        const bubble = d3.select("#infoBubble");
+        bubble.classed("inactive", !hasDetail);
+
+        const pieData = pie(data);
+        const paths = gPie.selectAll(".pie-slice").data(pieData, d => d.data.name);
+        
+        paths.exit().remove();
+        paths.enter().append("path").attr("class", "pie-slice")
+            .merge(paths).transition().duration(750)
+            .attr("d", arc).attr("fill", d => d.data.color);
+
+        gPie.selectAll(".pie-slice")
+            .classed("clickable", d => !isDetail && d.data.name === "Importations" && hasDetail)
+            .on("click", (event, d) => {
+                if (!isDetail && d.data.name === "Importations" && hasDetail) drawPie(getImportDetail(currentYear), true);
+            });
+
+        const polylines = gPie.selectAll("polyline").data(pieData, d => d.data.name);
+        polylines.exit().remove();
+        polylines.enter().append("polyline").attr("class", "polyline").merge(polylines).transition().duration(750)
+            .attr("points", d => {
+                const posA = arc.centroid(d), posB = outerArc.centroid(d), posC = outerArc.centroid(d);
+                posC[0] = radius * 1.18 * ( (d.startAngle + d.endAngle)/2 < Math.PI ? 1 : -1);
+                return [posA, posB, posC];
+            });
+
+        const texts = gPie.selectAll(".label-pie").data(pieData, d => d.data.name);
+        texts.exit().remove();
+        texts.enter().append("text").attr("class", "labelText label-pie").merge(texts).transition().duration(750)
+            .attr("transform", d => {
+                const pos = outerArc.centroid(d);
+                pos[0] = radius * 1.25 * ( (d.startAngle + d.endAngle)/2 < Math.PI ? 1 : -1);
+                return `translate(${pos})`;
+            })
+            .style("text-anchor", d => ( (d.startAngle + d.endAngle)/2 < Math.PI ? "start" : "end"))
+            .text(d => `${d.data.name} : ${d.data.value} Mt`);
+
+        const legend = d3.select("#pie-legend");
+        legend.selectAll("*").remove();
+        data.forEach(d => {
+            const item = legend.append("div").attr("class", "legend-item");
+            item.append("span").style("background", d.color);
+            item.append("div").text(d.name);
+        });
+    }
+
+    function getPieData(year) {
+        const row = dataCSV.find(d => d.annee === +year);
+        return [
+            { name: "Émissions directes", value: row.direct, color: "#1f77b4" },
+            { name: "Production intérieure", value: row.production, color: "#ff7f0e" },
+            { name: "Importations", value: row.imports, color: "#2ca02c" }
+        ];
+    }
+    function getImportDetail(year) {
+        const row = dataCSV.find(d => d.annee === +year);
+        return [
+            { name: "Usage Final", value: row.importsFinal, color: "#98df8a" },
+            { name: "Usage Intermédiaire", value: row.importsIntermediate, color: "#2ca02c" }
+        ];
+    }
+
+    drawPie(getPieData(currentYear));
+    yearSelector.on("change", function() { currentYear = +this.value; drawPie(getPieData(currentYear)); });
+    d3.select("#backBtn").on("click", () => drawPie(getPieData(currentYear)));
+});
+</script>
+</body>
+</html>
