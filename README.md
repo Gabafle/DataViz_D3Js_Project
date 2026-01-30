@@ -3,7 +3,7 @@
 ### Gabriel PETER 
 ### Mickaël TALIDEC
 
-## 📁 Structure des Dossiers
+##  Structure des Dossiers
 
 ```
 DataViz_D3Js_Project/
@@ -50,22 +50,22 @@ DataViz_D3Js_Project/
 ```
 
 ## Sujet : 2. Environnement et changement climatique
-####  Empreinte Carbone en France comparer dans le monde entre 1990 et 2024
+####  L'empreinte carbone en France comparée au reste du monde entre 1990 et 2024
 
 ### Graphiques Inclus
-1. Empreinte carbone par personne (tonne par personne) en france de 1990 à 2024
-2. Composition de l'Empreinte
-3. Le Gap Carbone
-4. La différence d'émission entre les Ménages contre les Entreprises ou l'État
-5. Comparaison Internationale - 2022 des Emissions par personnes en T CO2 
-6. Répartition par Type d'Émission par années
-7. Répartition par Secteur en 2023 des production de gaz GES
-8. Émissions par Territoire DROM-COM par années 
+1. Empreinte carbone par personne (tonnes par habitant) en France de 1990 à 2024.
+2. Composition de l'empreinte : Détail des postes de consommation.
+3. Le Gap Carbone : Analyse de l'écart entre les objectifs et la réalité.
+4. Comparaison des émissions : Ménages vs Entreprises & État.
+5. Comparaison internationale (2022) : Émissions par habitant en tonnes de CO2eq.
+6. Répartition par type d'émission par année.
+7. Répartition par secteur (2023) de la production de gaz à effet de serre (GES).
+8. Émissions par territoire (DROM-COM) par année.
 
 
 ### Sources de données
 
-<p>Données synthétisées à partir de plusieurs sources et mises en corrélation afin d’analyser l’empreinte carbone.</p>
+<p>Les données ont été synthétisées à partir de plusieurs sources officielles et mises en corrélation afin d’analyser l’évolution de l’empreinte carbone.</p>
 
 <ul>
   <li>Open Data EDF : https://opendata.edf.fr/datasets/emissions-c02</li>
