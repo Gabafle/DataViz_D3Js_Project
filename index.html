@@ -1,13 +1,1019 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="./styles/main_styles.css">
-    <title>Title</title>
+    <title>Empreinte Carbone Interactive - France & Monde</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson@3"></script>
+    <style>
+        /* =========================
+   GLOBAL UI (Dashboard Style)
+========================= */
+        :root {
+            --bg-main: #f4f7fb;
+            --bg-card: #ffffff;
+            --primary: #1976d2;
+            --secondary: #2c3e50;
+            --accent-green: #2ca02c;
+            --accent-red: #e74c3c;
+            --accent-orange: #ff9800;
+            --border-soft: #e6ecf3;
+            --shadow-soft: 0 6px 20px rgba(0,0,0,0.08);
+            --shadow-hover: 0 10px 28px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: "Segoe UI", Inter, system-ui, sans-serif;
+            background: linear-gradient(180deg, #f4f7fb 0%, #eef2f7 100%);
+            color: #2c3e50;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Titles */
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin: 30px 0 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 10px 0 15px;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        /* =========================
+           CARDS / CHART CONTAINER
+        ========================= */
+        .chart-container {
+            width: 95%;
+            max-width: 1150px;
+            margin: 40px auto;
+            position: relative;
+            background: var(--bg-card);
+            padding: 22px 26px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-soft);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        svg {
+            display: block;
+            margin: auto;
+            overflow: visible;
+        }
+
+        /* Subtitle */
+        .map-subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #6b7c93;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* =========================
+           TOOLTIP (PRO STYLE)
+        ========================= */
+        .tooltip {
+            position: absolute;
+            background: rgba(20, 25, 40, 0.95);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            pointer-events: none;
+            font-size: 13px;
+            opacity: 0;
+            z-index: 2000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            max-width: 260px;
+        }
+
+        .tooltip-header {
+            font-weight: 700;
+            margin-bottom: 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 4px;
+        }
+
+        /* =========================
+           SWITCH (MODERN)
+        ========================= */
+        .switch-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 25px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #7a869a;
+        }
+
+        .switch-label.active {
+            color: var(--secondary);
+        }
+
+        .slider {
+            position: relative;
+            width: 52px;
+            height: 26px;
+            background: #dfe6ee;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .slider.active-total { background: #c8e6c9; }
+        .slider.active-capita { background: #bbdefb; }
+
+        .slider-circle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+
+        /* =========================
+           INFO BUBBLE (SMART)
+        ========================= */
+        .info-bubble {
+            position: absolute;
+            left: 20px;
+            top: 150px;
+            width: 230px;
+            background: linear-gradient(135deg, #e3f2fd, #f8fbff);
+            border: 2px solid var(--primary);
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+            animation: pulse 2.2s infinite;
+        }
+
+        .info-bubble b {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-bubble.inactive {
+            border-color: #bbb;
+            background: #f9f9f9;
+            animation: none;
+            opacity: 0.7;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 6px 12px rgba(25,118,210,0.12); }
+            50% { transform: scale(1.03); box-shadow: 0 10px 20px rgba(25,118,210,0.25); }
+            100% { transform: scale(1); box-shadow: 0 6px 12px rgba(25,118,210,0.12); }
+        }
+
+        /* =========================
+           LEGENDS (DATA VIZ STYLE)
+        ========================= */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 22px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-soft);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .legend-item span {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            border-radius: 4px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        /* =========================
+           INFO CARDS (EXPLANATION)
+        ========================= */
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 15px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 2px solid var(--border-soft);
+        }
+
+        .info-card {
+            background: linear-gradient(180deg, #fafafa, #fdfefe);
+            padding: 14px;
+            border-radius: 10px;
+            border-left: 5px solid #ccc;
+            font-size: 13px;
+            transition: transform 0.2s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .info-card h4 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Colors cards */
+        .card-direct { border-left-color: #1f77b4; }
+        .card-prod { border-left-color: #ff7f0e; }
+        .card-imp { border-left-color: #2ca02c; }
+        .card-imp-final { border-left-color: #98df8a; }
+        .card-imp-inter { border-left-color: #2ca02c; background: #f0f7f0; }
+
+        /* =========================
+           MAP & INTERACTIVITY
+        ========================= */
+        .country {
+            stroke: #fff;
+            stroke-width: 0.5px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .country:hover {
+            opacity: 0.85;
+            stroke: #333;
+            stroke-width: 1px;
+            transform: scale(1.01);
+        }
+
+        .clickable {
+            cursor: pointer !important;
+            filter: brightness(1.15);
+            stroke: #000 !important;
+            stroke-width: 1px !important;
+        }
+
+        /* Map legend */
+        .map-legend-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 18px;
+            padding-bottom: 8px;
+        }
+
+        .map-legend-bar {
+            width: 320px;
+            height: 14px;
+            border-radius: 6px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .map-legend-labels {
+            width: 320px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 6px;
+            color: #666;
+        }
+
+        /* =========================
+           SELECT & BUTTON
+        ========================= */
+        #yearSelector {
+            display: block;
+            margin: 12px auto 22px;
+            font-size: 14px;
+            padding: 7px 14px;
+            border-radius: 8px;
+            border: 1px solid #ccd6e0;
+            background: #fff;
+            cursor: pointer;
+            transition: border 0.2s;
+        }
+
+        #yearSelector:hover {
+            border-color: var(--primary);
+        }
+
+        #backBtn {
+            display: none;
+            position: absolute;
+            top: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 7px 16px;
+            background: linear-gradient(135deg, #2ca02c, #4caf50);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        #backBtn:hover {
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        /* Labels */
+        .labelText {
+            font-size: 11px;
+            fill: #2c3e50;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .polyline {
+            fill: none;
+            stroke: #aaa;
+            stroke-width: 1px;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+    </style>
 </head>
 <body>
 
-    <h2 class="toto">Hello </h2>
+<h1>Analyse de l'Empreinte Carbone (1990-2024) en France</h1>
+
+<div class="chart-container">
+    <h2 id="main-title">Empreinte carbone par personne (tonne par personne) en france de 1990 à 2024</h2>
+    <div class="switch-wrapper">
+        <span id="label-capita" class="switch-label active">Par personne</span>
+        <div class="slider active-capita" id="modeSlider">
+            <div class="slider-circle" id="sliderCircle"></div>
+        </div>
+        <span id="label-total" class="switch-label">Empreinte totale</span>
+    </div>
+    <svg id="main-chart" width="900" height="400"></svg>
+</div>
+<div class="chart-container">
+    <h2 style="color:#2c3e50;">Composition de l'Empreinte : La part des Importations</h2>
+    <div class="map-subtitle">
+        Visualisation de ce qui est émis sur le sol français (Bleu) vs ce qui est importé (Rouge).<br>
+        On voit clairement que si les émissions locales baissent, les importations stagnent ou augmentent.
+    </div>
+    <svg id="composition-chart" width="950" height="450"></svg>
+    <div class="legend" id="composition-legend"></div>
+</div>
+
+<div class="chart-container">
+    <h2 style="color:#d32f2f;">Le "Gap" Carbone : Production vs Consommation</h2>
+    <div class="map-subtitle">Comparaison entre les émissions sur le sol français et l'empreinte réelle (incluant importations).<br>La zone rouge représente le "déficit" carbone (Importations nettes).</div>
+    <svg id="gap-chart" width="950" height="450"></svg>
+    <div class="legend" id="gap-legend"></div>
+</div>
+
+<div class="chart-container">
+    <h2 style="color:#1976d2;">Qui émet quoi ? (Ménages vs Entreprises/État)</h2>
+    <div class="map-subtitle">Évolution de la part de l'empreinte carbone totale (en Milliers de tonnes CO2 éq)</div>
+    <svg id="stack-chart" width="950" height="450"></svg>
+    <div class="legend" id="stack-legend"></div>
+</div>
+
+<div class="chart-container">
+    <div class="map-header">
+        <h2>COMPARAISON INTERNATIONALE D’EMPREINTE CARBONE - 2022</h2>
+        <div class="map-subtitle">Émissions par personne en t CO2 éq</div>
+    </div>
+    <svg id="world-map" width="900" height="500"></svg>
+    <div class="map-legend-container">
+        <div id="map-gradient" class="map-legend-bar"></div>
+        <div class="map-legend-labels">
+            <span>Moins polluant (Vert)</span>
+            <span>Plus polluant (Rouge)</span>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <h2 id="pie-title">Répartition des émissions de Carbonne par année en Million de tonne</h2>
+    <div id="infoBubble" class="info-bubble">
+        <b>Exploration disponible</b>
+        Depuis 2010, cliquez sur la partie <b>Importations</b> pour voir le détail.
+    </div>
+    <select id="yearSelector"></select>
+    <button id="backBtn">← Retour à la vue générale</button>
+    <svg id="pie" width="950" height="500"></svg>
+    <div class="legend" id="pie-legend"></div>
+    <div class="info-section">
+        <div class="info-card card-direct"><h4>Émissions directes</h4><p>Chauffage domestique et carburant pour véhicules personnels.</p></div>
+        <div class="info-card card-prod"><h4>Production intérieure</h4><p>Gaz émis sur le sol français pour produire ce que nous consommons.</p></div>
+        <div class="info-card card-imp"><h4>Importations (Global)</h4><p>Émissions générées à l'étranger pour nos produits importés.</p></div>
+        <div class="info-card card-imp-final"><h4>Usage Final</h4><p>Émissions liées aux produits importés finis.</p></div>
+        <div class="info-card card-imp-inter"><h4>Consommation Intermédiaire</h4><p>Émissions liées aux composants ou matières premières importés.</p></div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <h2>Répartition des GES par branche d'activité en France (2022)</h2>
+    <div class="map-subtitle">Valeurs exprimées en pourcentage (%) des émissions totales</div>
+    <svg id="sector-pie" width="950" height="500"></svg>
+    <div class="legend" id="sector-legend"></div>
+</div>
+
+<div class="chart-container">
+    <h2>Émissions Carbone (tCO2) par Territoire DROM-COM</h2>
+    <div class="drom-controls">
+        <span id="year-display-drom">Chargement...</span><br>
+        <input type="range" id="yearSliderDrom" min="2017" max="2024" step="1" value="2017" style="width: 300px;">
+    </div>
+    <div class="map-legend-container">
+        <div class="drom-legend-gradient"></div>
+        <div class="map-legend-labels" style="width: 300px;">
+            <span>0</span><span>1000</span><span>2000+</span>
+        </div>
+    </div>
+    <div id="drom-map-area" style="position: relative;">
+        <svg id="drom-svg" width="960" height="600"></svg>
+    </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+    const tooltip = d3.select("#tooltip");
+
+    // --- CHARGEMENT DES DONNÉES GÉNÉRALES ---
+    Promise.all([
+        // =========================
+        // 1) CSV PRINCIPAL FRANCE
+        // =========================
+        d3.dsv(";", "./source/Emissions&empreinteGESFrancedepuis1990.csv", d => {
+            const parse = (val) => val ? parseFloat(val.replace(',', '.')) : 0;
+
+            return {
+                annee: +d.annee,
+
+                // === Champs avancés (pour tes nouveaux graphes) ===
+                emissions_territoire: parse(d.emissions_totales_territoriales),
+                emissions_menages: parse(d.emissions_menages_territoriales),
+                emissions_hors_menages: parse(d.emissions_hors_menages_territoriales),
+                empreinte_totale: parse(d.empreinte_totale),
+                empreinte_menages: parse(d.empreinte_menages),
+                empreinte_hors_menages: parse(d.empreinte_hors_menages),
+                emissions_hab: parse(d.emissions_totales_par_habitant),
+                empreinte_hab: parse(d.empreinte_totale_par_habitant),
+
+                // === Champs historiques (remap pour compatibilité avec ancien code) ===
+                perCapita: parse(d.empreinte_totale_par_habitant),
+                total: parse(d.empreinte_totale),
+                direct: parse(d.emissions_menages_territoriales),
+                production: parse(d.emissions_hors_menages_territoriales),
+                imports: parse(d.empreinte_totale) - parse(d.emissions_totales_territoriales),
+                importsFinal: 0,
+                importsIntermediate: 0
+            };
+        }),
+
+        // =========================
+        // 2) COMPARAISON MONDIALE
+        // =========================
+        d3.dsv(";", "./source/ComparaisonInternationnalDempreinteCarbonne2022.csv", d => ({
+            pays: d.pays,
+            valeur: parseFloat(d["2022"].replace(',', '.'))
+        })),
+
+        // =========================
+        // 3) CARTE MONDE
+        // =========================
+        d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"),
+
+        // =========================
+        // 4) SECTEURS GES
+        // =========================
+        d3.dsv(";", "./source/RepartitionGESFrance2023.csv", d => {
+            const keys = Object.keys(d);
+            return {
+                name: d[keys[0]],
+                value: parseFloat(d[keys[1]].replace(',', '.'))
+            };
+        })
+    ]).then(([dataCSV, dataMap, world, sectorData]) => {
+
+        // --- 1. GRAPHIQUE LINÉAIRE ---
+        const svgLine = d3.select("#main-chart");
+        const wL = +svgLine.attr("width") - 100, hL = +svgLine.attr("height") - 80;
+        const gL = svgLine.append("g").attr("transform","translate(70,40)");
+        const x = d3.scaleLinear().domain(d3.extent(dataCSV, d=>d.annee)).range([0,wL]);
+        const yScales = {
+            perCapita: d3.scaleLinear().domain([8, 13]).range([hL,0]),
+            total: d3.scaleLinear().domain([0, d3.max(dataCSV, d => d.total) * 1.1]).range([hL,0])
+        };
+        let mode = "perCapita";
+        const yAxis = gL.append("g");
+        const xAxis = gL.append("g").attr("transform",`translate(0,${hL})`);
+
+        function updateLine() {
+            yAxis.transition().duration(800).call(d3.axisLeft(yScales[mode]));
+            xAxis.call(d3.axisBottom(x).tickFormat(d3.format("d")));
+            const line = d3.line().x(d=>x(d.annee)).y(d=>yScales[mode](d[mode])).curve(d3.curveMonotoneX);
+            let path = gL.selectAll(".line-path").data([dataCSV]);
+            path.enter().append("path").attr("class", "line-path").merge(path).transition().duration(800)
+                .attr("fill","none").attr("stroke", mode==="perCapita"?"#2196F3":"#4CAF50").attr("stroke-width",3).attr("d",line);
+            let dots = gL.selectAll(".dot").data(dataCSV);
+            dots.enter().append("circle").attr("class", "dot").merge(dots).transition().duration(800)
+                .attr("cx", d=>x(d.annee)).attr("cy", d=>yScales[mode](d[mode])).attr("r",5).attr("fill", mode==="perCapita"?"#FF9800":"#E91E63");
+        }
+        updateLine();
+
+        d3.select("#modeSlider").on("click", function(){
+            mode = mode === "perCapita" ? "total" : "perCapita";
+            const isCapita = mode === "perCapita";
+            d3.select("#sliderCircle").style("left", isCapita ? "3px" : "27px");
+            d3.select("#modeSlider").classed("active-capita", isCapita).classed("active-total", !isCapita);
+            d3.select("#label-capita").classed("active", isCapita);
+            d3.select("#label-total").classed("active", !isCapita);
+            d3.select("#main-title").text(`Empreinte carbone ${isCapita ? "par personne (tonne par personne)" : "totale (millions de tonnes)"} en france de 1990 à 2024`);
+            updateLine();
+        });
+
+        // --- 2. CARTE MONDIALE ---
+        const svgMap = d3.select("#world-map");
+        const projection = d3.geoMercator().scale(130).translate([450, 350]);
+        const pathGenerator = d3.geoPath().projection(projection);
+        const colorScaleMap = d3.scaleSequential(d3.interpolateRdYlGn).domain([d3.max(dataMap, d => d.valeur), 0]);
+        d3.select("#map-gradient").style("background", `linear-gradient(to right, ${d3.interpolateRdYlGn(1)}, ${d3.interpolateRdYlGn(0)})`);
+
+        const countries = topojson.feature(world, world.objects.countries).features;
+        const dataMapDict = {};
+        dataMap.forEach(d => { dataMapDict[d.pays] = d.valeur; });
+        const nameFixes = { "United States of America": "USA", "Saudi Arabia": "Arabie saoudite", "Germany": "Allemagne", "Russia": "Russie", "China": "Chine", "France": "France", "Turkey": "Turquie", "Luxembourg": "Luxembourg" };
+
+        svgMap.append("g").selectAll("path").data(countries).enter().append("path")
+            .attr("class", "country")
+            .attr("d", pathGenerator)
+            .attr("fill", d => {
+                const name = nameFixes[d.properties.name] || d.properties.name;
+                const val = dataMapDict[name];
+                return val ? colorScaleMap(val) : "#eee";
+            })
+            .on("mouseover", (event, d) => {
+                const name = nameFixes[d.properties.name] || d.properties.name;
+                const val = dataMapDict[name];
+                tooltip.style("opacity", 1).html(`<b>${name}</b><br>${val ? val + " t CO2 éq/pers" : "N/A"}`)
+                        .style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 20) + "px");
+            })
+            .on("mouseout", () => tooltip.style("opacity", 0));
+
+        // ---------------------------------------------------------
+        // 3. NOUVEAU : STACKED BAR CHART (COMPOSITION IMPORT/LOCAL)
+        // ---------------------------------------------------------
+        const svgComp = d3.select("#composition-chart");
+        const marginComp = {top: 40, right: 150, bottom: 40, left: 70};
+        const wComp = +svgComp.attr("width") - marginComp.left - marginComp.right;
+        const hComp = +svgComp.attr("height") - marginComp.top - marginComp.bottom;
+        const gComp = svgComp.append("g").attr("transform", `translate(${marginComp.left},${marginComp.top})`);
+
+        // Préparation des données pour le stack
+        // On calcule les imports = Empreinte - Territoire (en gérant les petits écarts)
+        const dataStackBar = dataCSV.map(d => ({
+            annee: d.annee,
+            local: d.emissions_territoire,
+            imported: Math.max(0, d.empreinte_totale - d.emissions_territoire)
+        }));
+
+        const subgroups = ["local", "imported"];
+        const groups = dataStackBar.map(d => d.annee);
+
+        const xComp = d3.scaleBand().domain(groups).range([0, wComp]).padding(0.2);
+        const yComp = d3.scaleLinear().domain([0, d3.max(dataCSV, d => d.empreinte_totale) * 1.1]).range([hComp, 0]);
+        const colorComp = d3.scaleOrdinal().domain(subgroups).range(['#3498db', '#e74c3c']); // Bleu pour local, Rouge pour import
+
+        // Axes
+        gComp.append("g").attr("transform", `translate(0,${hComp})`).call(d3.axisBottom(xComp).tickValues(xComp.domain().filter((d,i) => !(i%2)))); // Une année sur 2
+        gComp.append("g").call(d3.axisLeft(yComp));
+
+        // Stacking
+        const stackedData = d3.stack().keys(subgroups)(dataStackBar);
+
+        gComp.append("g")
+            .selectAll("g")
+            .data(stackedData)
+            .join("g")
+            .attr("fill", d => colorComp(d.key))
+            .selectAll("rect")
+            .data(d => d)
+            .join("rect")
+            .attr("class", "bar")
+            .attr("x", d => xComp(d.data.annee))
+            .attr("y", d => yComp(d[1]))
+            .attr("height", d => yComp(d[0]) - yComp(d[1]))
+            .attr("width", xComp.bandwidth())
+            .on("mouseover", function(event, d) {
+                const subgroupName = d3.select(this.parentNode).datum().key;
+                const subLabel = subgroupName === "local" ? "Émissions en France" : "Importations";
+                const val = d[1] - d[0];
+                const total = d.data.local + d.data.imported;
+                const pct = ((val/total)*100).toFixed(1);
+
+                tooltip.style("opacity", 1)
+                    .html(`<div class="tooltip-header">Année ${d.data.annee}</div>
+                          <b>${subLabel}</b><br>
+                          Volume: ${Math.round(val).toLocaleString()} kt<br>
+                          Part: ${pct}% de l'empreinte`)
+                    .style("left", (event.pageX+10)+"px").style("top", (event.pageY-20)+"px");
+            })
+            .on("mouseout", () => tooltip.style("opacity", 0));
+
+        // Légende Composition
+        const legendComp = d3.select("#composition-legend");
+        [{l:"Émissions Territoriales (France)", c:"#3498db"}, {l:"Importations", c:"#e74c3c"}].forEach(item => {
+            const div = legendComp.append("div").attr("class", "legend-item");
+            div.append("span").style("background", item.c);
+            div.append("div").text(item.l);
+        });
+
+
+        // ---------------------------------------------------------
+        // 3. LE GAP (TERRITOIRE vs EMPREINTE) - Existant
+        // ---------------------------------------------------------
+        const svgGap = d3.select("#gap-chart");
+        const marginGap = {top: 40, right: 150, bottom: 40, left: 70};
+        const wGap = +svgGap.attr("width") - marginGap.left - marginGap.right;
+        const hGap = +svgGap.attr("height") - marginGap.top - marginGap.bottom;
+        const gGap = svgGap.append("g").attr("transform", `translate(${marginGap.left},${marginGap.top})`);
+
+        // Echelles
+        const xGap = d3.scaleLinear().domain(d3.extent(dataCSV, d=>d.annee)).range([0, wGap]);
+        const yGap = d3.scaleLinear()
+            .domain([0, d3.max(dataCSV, d => Math.max(d.emissions_territoire, d.empreinte_totale)) * 1.1])
+            .range([hGap, 0]);
+
+        // Axes
+        gGap.append("g").attr("transform", `translate(0,${hGap})`).call(d3.axisBottom(xGap).tickFormat(d3.format("d")));
+        gGap.append("g").call(d3.axisLeft(yGap));
+
+        // Zone de différence (Le Gap)
+        const areaGap = d3.area()
+            .x(d => xGap(d.annee))
+            .y0(d => yGap(d.emissions_territoire))
+            .y1(d => yGap(d.empreinte_totale))
+            .curve(d3.curveMonotoneX);
+
+        gGap.append("path")
+            .datum(dataCSV)
+            .attr("fill", "#e57373")
+            .attr("fill-opacity", 0.3)
+            .attr("d", areaGap);
+
+        // Lignes
+        const lineTerritoire = d3.line().x(d=>xGap(d.annee)).y(d=>yGap(d.emissions_territoire)).curve(d3.curveMonotoneX);
+        const lineEmpreinte = d3.line().x(d=>xGap(d.annee)).y(d=>yGap(d.empreinte_totale)).curve(d3.curveMonotoneX);
+
+        gGap.append("path").datum(dataCSV).attr("fill","none").attr("stroke","#43a047").attr("stroke-width",3).attr("d", lineTerritoire);
+        gGap.append("path").datum(dataCSV).attr("fill","none").attr("stroke","#d32f2f").attr("stroke-width",3).attr("stroke-dasharray", "5,5").attr("d", lineEmpreinte);
+
+        // Légende interactive Gap
+        const legendDataGap = [
+            {name: "Empreinte Totale (Consommation)", color: "#d32f2f", dashed: true},
+            {name: "Émissions Territoriales (Production)", color: "#43a047", dashed: false},
+            {name: "Déficit (Importations nettes)", color: "#e57373", rect: true}
+        ];
+
+        const legendGap = d3.select("#gap-legend");
+        legendDataGap.forEach(d => {
+            const item = legendGap.append("div").attr("class", "legend-item");
+            item.append("span").style("background", d.rect ? d.color : "transparent")
+                .style("border-bottom", d.rect ? "none" : `3px ${d.dashed ? 'dashed' : 'solid'} ${d.color}`)
+                .style("height", d.rect ? "14px" : "0px").style("margin-bottom", d.rect ? "0" : "7px");
+            item.append("div").text(d.name);
+        });
+
+        // Interaction Hover Gap
+        const hoverLine = gGap.append("line").attr("stroke", "#333").attr("stroke-dasharray", "2,2").style("opacity", 0);
+
+        svgGap.on("mousemove", function(event) {
+            const [mx] = d3.pointer(event, gGap.node());
+            const year = Math.round(xGap.invert(mx));
+            const d = dataCSV.find(e => e.annee === year);
+
+            if (d) {
+                hoverLine.attr("x1", xGap(year)).attr("x2", xGap(year)).attr("y1", 0).attr("y2", hGap).style("opacity", 1);
+                const gapVal = d.empreinte_totale - d.emissions_territoire;
+
+                tooltip.style("opacity", 1)
+                    .html(`
+                    <div class="tooltip-header">Année ${d.annee}</div>
+                    <span style="color:#d32f2f">●</span> Empreinte: ${d.empreinte_totale.toLocaleString()} kt<br>
+                    <span style="color:#43a047">●</span> Territoire: ${d.emissions_territoire.toLocaleString()} kt<br>
+                    <b>Différence: +${Math.round(gapVal).toLocaleString()} kt</b>
+                `)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 20) + "px");
+            }
+        }).on("mouseout", () => {
+            tooltip.style("opacity", 0);
+            hoverLine.style("opacity", 0);
+        });
+
+
+        // ---------------------------------------------------------
+        // 4. STACKED AREA (MÉNAGES vs HORS MÉNAGES) - Existant
+        // ---------------------------------------------------------
+        const svgStack = d3.select("#stack-chart");
+        const marginStack = {top: 20, right: 20, bottom: 40, left: 70};
+        const wStack = +svgStack.attr("width") - marginStack.left - marginStack.right;
+        const hStack = +svgStack.attr("height") - marginStack.top - marginStack.bottom;
+        const gStack = svgStack.append("g").attr("transform", `translate(${marginStack.left},${marginStack.top})`);
+
+        const stack = d3.stack().keys(["empreinte_menages", "empreinte_hors_menages"]);
+        const series = stack(dataCSV);
+        const colorStack = d3.scaleOrdinal().domain(["empreinte_menages", "empreinte_hors_menages"]).range(["#ff9800", "#1976d2"]); // Orange & Bleu
+
+        const xStack = d3.scaleLinear().domain(d3.extent(dataCSV, d=>d.annee)).range([0, wStack]);
+        const yStack = d3.scaleLinear().domain([0, d3.max(dataCSV, d => d.empreinte_totale) * 1.1]).range([hStack, 0]);
+
+        // Area Generator
+        const areaStack = d3.area()
+            .x(d => xStack(d.data.annee))
+            .y0(d => yStack(d[0]))
+            .y1(d => yStack(d[1]))
+            .curve(d3.curveMonotoneX);
+
+        gStack.selectAll("path")
+            .data(series)
+            .join("path")
+            .attr("fill", d => colorStack(d.key))
+            .attr("d", areaStack)
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 0.5)
+            .on("mousemove", function(event, d) {
+                const [mx] = d3.pointer(event, gStack.node());
+                const year = Math.round(xStack.invert(mx));
+                const row = dataCSV.find(e => e.annee === year);
+                if(row) {
+                    const keyName = d.key === "empreinte_menages" ? "Ménages" : "Entreprises & État";
+                    const val = row[d.key];
+                    const pct = ((val / row.empreinte_totale) * 100).toFixed(1);
+                    tooltip.style("opacity", 1)
+                        .html(`<b>${keyName} (${year})</b><br>${val.toLocaleString()} kt<br>${pct}% du total`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 20) + "px");
+                }
+                d3.select(this).style("opacity", 0.9);
+            })
+            .on("mouseout", function() {
+                tooltip.style("opacity", 0);
+                d3.select(this).style("opacity", 1);
+            });
+
+        gStack.append("g").attr("transform", `translate(0,${hStack})`).call(d3.axisBottom(xStack).tickFormat(d3.format("d")));
+        gStack.append("g").call(d3.axisLeft(yStack));
+
+        // Légende Stack
+        const legendStack = d3.select("#stack-legend");
+        [{label:"Ménages (Direct)", color:"#ff9800"}, {label:"Hors-Ménages (Éco/Indus/Admin)", color:"#1976d2"}].forEach(d => {
+            const item = legendStack.append("div").attr("class", "legend-item");
+            item.append("span").style("background", d.color);
+            item.append("div").text(d.label);
+        });
+
+
+
+
+
+        // --- 3. CAMEMBERT INTERACTIF ---
+        const svgPie = d3.select("#pie");
+        const wP = +svgPie.attr("width"), hP = +svgPie.attr("height");
+        const radius = 140;
+        const gPie = svgPie.append("g").attr("transform", `translate(${wP/2},${hP/2})`);
+        const pie = d3.pie().value(d => d.value).sort(null).padAngle(0.02);
+        const arc = d3.arc().innerRadius(radius * 0.4).outerRadius(radius);
+        const outerArc = d3.arc().innerRadius(radius * 1.1).outerRadius(radius * 1.1);
+
+        const yearSelector = d3.select("#yearSelector");
+        dataCSV.forEach(d => yearSelector.append("option").attr("value", d.annee).text(d.annee));
+        let currentYear = dataCSV[0].annee;
+
+        function drawPie(data, isDetail = false) {
+            d3.select("#backBtn").style("display", isDetail ? "block" : "none");
+            const hasDetail = currentYear >= 2010;
+            d3.select("#infoBubble").classed("inactive", !hasDetail);
+
+            const pieData = pie(data);
+            const paths = gPie.selectAll(".pie-slice").data(pieData, d => d.data.name);
+
+            paths.exit().remove();
+            paths.enter().append("path").attr("class", "pie-slice")
+                .merge(paths).transition().duration(750)
+                .attr("d", arc).attr("fill", d => d.data.color);
+
+            gPie.selectAll(".pie-slice")
+                .classed("clickable", d => !isDetail && d.data.name === "Importations" && hasDetail)
+                .on("click", (event, d) => {
+                    if (!isDetail && d.data.name === "Importations" && hasDetail) drawPie(getImportDetail(currentYear), true);
+                });
+
+            const polylines = gPie.selectAll(".polyline-hist").data(pieData, d => d.data.name);
+            polylines.exit().remove();
+            polylines.enter().append("polyline").attr("class", "polyline polyline-hist").merge(polylines).transition().duration(750)
+                .attr("points", d => {
+                    const posA = arc.centroid(d), posB = outerArc.centroid(d), posC = outerArc.centroid(d);
+                    posC[0] = radius * 1.18 * ( (d.startAngle + d.endAngle)/2 < Math.PI ? 1 : -1);
+                    return [posA, posB, posC];
+                });
+
+            const texts = gPie.selectAll(".label-pie").data(pieData, d => d.data.name);
+            texts.exit().remove();
+            texts.enter().append("text").attr("class", "labelText label-pie").merge(texts).transition().duration(750)
+                .attr("transform", d => {
+                    const pos = outerArc.centroid(d);
+                    pos[0] = radius * 1.25 * ( (d.startAngle + d.endAngle)/2 < Math.PI ? 1 : -1);
+                    return `translate(${pos})`;
+                })
+                .style("text-anchor", d => ( (d.startAngle + d.endAngle)/2 < Math.PI ? "start" : "end"))
+                .text(d => `${d.data.name} : ${d.data.value} Mt`);
+
+            const legend = d3.select("#pie-legend");
+            legend.selectAll("*").remove();
+            data.forEach(d => {
+                const item = legend.append("div").attr("class", "legend-item");
+                item.append("span").style("background", d.color);
+                item.append("div").text(d.name);
+            });
+        }
+
+        function getPieData(year) {
+            const row = dataCSV.find(d => d.annee === +year);
+            return [
+                { name: "Émissions directes", value: Math.round(row.direct / 1000 * 10) / 10, color: "#1f77b4" },
+                { name: "Production intérieure", value: Math.round(row.production / 1000 * 10) / 10, color: "#ff7f0e" },
+                { name: "Importations", value: Math.round(row.imports / 1000 * 10) / 10, color: "#2ca02c" }
+            ];
+        }
+        function getImportDetail(year) {
+            const row = dataCSV.find(d => d.annee === +year);
+            const importsNettes = Math.max(0, row.empreinte_totale - row.emissions_territoire);
+            return [
+                { name: "Usage Final", value: Math.round((importsNettes / 2) / 1000 * 10) / 10, color: "#98df8a" },
+                { name: "Usage Intermédiaire", value: Math.round((importsNettes / 2) / 1000 * 10) / 10, color: "#2ca02c" }
+            ];
+        }
+
+        drawPie(getPieData(currentYear));
+        yearSelector.on("change", function() { currentYear = +this.value; drawPie(getPieData(currentYear)); });
+        d3.select("#backBtn").on("click", () => drawPie(getPieData(currentYear)));
+
+        // --- 4. CAMEMBERT SECTORIEL ---
+        const svgSect = d3.select("#sector-pie");
+        const radiusS = 160;
+        const gSect = svgSect.append("g").attr("transform", `translate(${wP/2},${hP/2})`);
+        const colorSect = d3.scaleOrdinal(d3.schemeTableau10);
+        const pieS = d3.pie().value(d => d.value).sort(null).padAngle(0.02);
+        const arcS = d3.arc().innerRadius(radiusS * 0.5).outerRadius(radiusS);
+        const outerArcS = d3.arc().innerRadius(radiusS * 1.2).outerRadius(radiusS * 1.2);
+        const pieDataS = pieS(sectorData);
+
+        gSect.selectAll("path").data(pieDataS).enter().append("path")
+            .attr("d", arcS).attr("fill", (d, i) => colorSect(i)).attr("stroke", "white").style("stroke-width", "2px")
+            .on("mouseover", function(event, d) {
+                d3.select(this).transition().duration(200).attr("d", d3.arc().innerRadius(radiusS * 0.5).outerRadius(radiusS + 10));
+                tooltip.style("opacity", 1).html(`<b>${d.data.name}</b> : ${d.data.value}%`);
+            })
+            .on("mousemove", e => tooltip.style("left", (e.pageX + 10) + "px").style("top", (e.pageY - 20) + "px"))
+            .on("mouseout", function() { d3.select(this).transition().duration(200).attr("d", arcS); tooltip.style("opacity", 0); });
+
+        gSect.selectAll("polyline").data(pieDataS).enter().append("polyline").attr("class", "polyline")
+            .attr("points", d => {
+                const posA = arcS.centroid(d), posB = outerArcS.centroid(d), posC = outerArcS.centroid(d);
+                const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                posC[0] = radiusS * 1.3 * (midangle < Math.PI ? 1 : -1);
+                return [posA, posB, posC];
+            });
+
+        gSect.selectAll("text").data(pieDataS).enter().append("text").attr("class", "labelText")
+            .attr("transform", d => {
+                const pos = outerArcS.centroid(d);
+                const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                pos[0] = radiusS * 1.35 * (midangle < Math.PI ? 1 : -1);
+                return `translate(${pos})`;
+            })
+            .style("text-anchor", d => {
+                const midangle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                return (midangle < Math.PI ? "start" : "end");
+            })
+            .text(d => `${d.data.value}%`);
+
+        const sectLegend = d3.select("#sector-legend");
+        sectorData.forEach((d, i) => {
+            const item = sectLegend.append("div").attr("class", "legend-item");
+            item.append("span").style("background", colorSect(i));
+            item.append("div").text(d.name.replace(';', ' - '));
+        });
+    });
+
+    // --- 5. LOGIQUE DROM-COM (ISOLÉE) ---
+    (function() {
+        const locations = [
+            { id: "Martinique", lat: 14.64, lon: -61.02 },
+            { id: "Guyane", lat: 3.93, lon: -53.12 },
+            { id: "Corse", lat: 42.03, lon: 9.01 },
+            { id: "Reunion", lat: -21.11, lon: 55.53 },
+            { id: "Guadeloupe", lat: 16.26, lon: -61.55 }
+        ];
+
+        const svg = d3.select("#drom-svg");
+        const projection = d3.geoMercator().scale(150).translate([480, 400]);
+        const colorScaleDrom = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, 2100]);
+
+        async function initDrom() {
+            const csvPath = "./source/emission_france_drom_com_par_annee.csv";
+            let rawData;
+
+            try {
+                const response = await fetch(csvPath);
+                const text = await response.text();
+                const separator = text.split('\n')[0].includes(';') ? ';' : ',';
+                const csvData = d3.dsvFormat(separator).parse(text);
+
+                rawData = csvData.map(d => {
+                    const keys = Object.keys(d);
+                    return { territory: d[keys[0]], year: +d[keys[1]], emissions: +d[keys[2]] };
+                });
+
+                const years = [...new Set(rawData.map(d => d.year))].filter(y => !isNaN(y)).sort();
+                const minYear = years[0], maxYear = years[years.length-1];
+
+                const slider = d3.select("#yearSliderDrom");
+                slider.attr("min", minYear).attr("max", maxYear).attr("value", minYear);
+
+                const worldData = await d3.json("https://unpkg.com/world-atlas@2/countries-110m.json");
+                const countries = topojson.feature(worldData, worldData.objects.countries).features;
+
+                svg.append("g").selectAll("path").data(countries).enter().append("path")
+                    .attr("class", "country").attr("d", d3.geoPath().projection(projection))
+                    .attr("fill", "#e9ecef").attr("stroke", "#adb5bd");
+
+                function update(year) {
+                    d3.select("#year-display-drom").text(year);
+                    const yearData = rawData.filter(d => d.year == year);
+
+                    const circles = svg.selectAll(".drom-circle").data(locations, d => d.id);
+                    circles.exit().remove();
+
+                    circles.enter().append("circle").attr("class", "drom-circle")
+                        .attr("cx", d => projection([d.lon, d.lat])[0])
+                        .attr("cy", d => projection([d.lon, d.lat])[1])
+                        .merge(circles)
+                        .transition().duration(600)
+                        .attr("r", 15)
+                        .attr("fill", d => {
+                            const record = yearData.find(e => e.territory.includes(d.id));
+                            return record ? colorScaleDrom(record.emissions) : "#ccc";
+                        })
+                        .attr("opacity", 0.8);
+
+                    svg.selectAll(".drom-circle")
+                        .on("mouseover", function(event, d) {
+                            const record = yearData.find(e => e.territory.includes(d.id));
+                            tooltip.style("opacity", 1).html(`<strong>${d.id}</strong><br>Émissions: ${record ? record.emissions : 'N/A'} tCO2`);
+                        })
+                        .on("mousemove", e => tooltip.style("left", (e.pageX + 10) + "px").style("top", (e.pageY - 20) + "px"))
+                        .on("mouseout", () => tooltip.style("opacity", 0));
+                }
+
+                update(minYear);
+                slider.on("input", function() { update(this.value); });
+
+            } catch(e) { console.error("DROM Error:", e); }
+        }
+        initDrom();
+    })();
+</script>
+
 
 </body>
 </html>
