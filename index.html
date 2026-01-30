@@ -152,11 +152,10 @@
            SVG COMMON
         ========================= */
         svg {
-            display: block;
+            display: flex;
+            align-items: center;
             overflow: visible;
-            width: 100%;
-            max-width: 100%;
-            height: auto;
+
             flex-grow: 1;
             flex-shrink: 0;
         }
@@ -261,7 +260,40 @@
             border-bottom: 1px solid rgba(255,255,255,0.2);
             padding-bottom: 4px;
         }
+        .compo_empreinte{
+            display: flex;
+            align-items: center;
+            margin-left: 35%;
+        }
+        .chart-subcontainer{
+            display: flex;
+            margin-left: 35%;
+        }
 
+        .who_emmit-subcontainer{
+            display: flex;
+            margin-left: 9%;
+        }
+        .mapinternational-subcontainer{
+            width: 100%;
+            margin-top: 5%;
+        }
+        .type-subcontainer{
+            display: flex;
+            margin-left: 13%;
+            margin-top: 5%;
+        }
+        .secteur-subcontainer{
+            display: flex;
+            margin-left: 20%;
+        }
+        .mapemissions-subcontainer{
+            margin-top: 5%;
+        }
+        .empreinte-subcontainer{
+            display: flex;
+            margin-left: 5%;
+        }
         /* =========================
            FOOTER
         ========================= */
@@ -366,14 +398,19 @@
                     </div>
                     <span id="label-total" class="switch-label">Empreinte totale</span>
                 </div>
-                <svg id="main-chart" width="900" height="400"></svg>
+                <div class="empreinte-subcontainer">
+                    <svg id="main-chart" width="750" height="400"></svg>
+                </div>
+
             </div>
 
             <!-- 2. COMPOSITION CHART -->
             <div class="chart-container">
                 <h2 style="color:#2c3e50;">Composition de l'Empreinte</h2>
                 <div class="chart-subtitle">La part des Importations vs Émissions Territoriales</div>
-                <svg id="composition-chart" width="950" height="450"></svg>
+                <div class="compo_empreinte">
+                    <svg id="composition-chart" class="compo-svg" width="850" height="400"></svg>
+                </div>
                 <div class="legend" id="composition-legend"></div>
             </div>
 
@@ -381,7 +418,10 @@
             <div class="chart-container">
                 <h2 style="color:#d32f2f;">Le Gap Carbone</h2>
                 <div class="chart-subtitle">Production vs Consommation</div>
-                <svg id="gap-chart" width="950" height="450"></svg>
+                <div class="chart-subcontainer">
+                    <svg id="gap-chart" width="900" height="450"></svg>
+                </div>
+
                 <div class="legend" id="gap-legend"></div>
             </div>
 
@@ -389,7 +429,10 @@
             <div class="chart-container">
                 <h2 style="color:#1976d2;">Qui émet quoi ?</h2>
                 <div class="chart-subtitle">Ménages vs Entreprises/État</div>
-                <svg id="stack-chart" width="950" height="450"></svg>
+                <div class="who_emmit-subcontainer">
+                    <svg id="stack-chart" width="750" height="450"></svg>
+                </div>
+
                 <div class="legend" id="stack-legend"></div>
             </div>
 
@@ -397,7 +440,10 @@
             <div class="chart-container full-width">
                 <h2>Comparaison Internationale - 2022</h2>
                 <div class="chart-subtitle">Émissions par personne en t CO2 éq</div>
-                <svg id="world-map" width="900" height="500"></svg>
+                <div class="mapinternational-subcontainer">
+                    <svg id="world-map" width="900" height="500"></svg>
+                </div>
+
                 <div class="map-legend-container">
                     <div id="map-gradient" class="map-legend-bar"></div>
                     <div class="map-legend-labels">
@@ -416,7 +462,10 @@
                 </div>
                 <select id="yearSelector"></select>
                 <button id="backBtn">← Retour</button>
-                <svg id="pie" width="950" height="500"></svg>
+                <div class="type-subcontainer">
+                    <svg id="pie" width="950" height="500"></svg>
+                </div>
+
                 <div class="legend" id="pie-legend"></div>
                 <div class="info-section">
                     <div class="info-card card-direct"><h4>Émissions directes</h4><p>Chauffage domestique et carburant pour véhicules personnels.</p></div>
@@ -431,24 +480,32 @@
             <div class="chart-container">
                 <h2>Répartition par Secteur - 2023</h2>
                 <div class="chart-subtitle">Part des émissions de GES par branche</div>
-                <svg id="sector-pie" width="950" height="500"></svg>
+                <div class="secteur-subcontainer">
+                    <svg id="sector-pie" width="950" height="500"></svg>
+                </div>
+
                 <div class="legend" id="sector-legend"></div>
             </div>
 
             <!-- 8. DROM CHART -->
             <div class="chart-container full-width">
-                <h2>Émissions par Territoire DROM-COM</h2>
-                <div class="drom-controls">
-                    <span id="year-display-drom">Chargement...</span><br>
-                    <input type="range" id="yearSliderDrom" min="2017" max="2024" step="1" value="2017">
-                </div>
-                <div class="map-legend-container">
-                    <div class="drom-legend-gradient"></div>
-                    <div class="map-legend-labels" style="width: 300px;">
-                        <span>0</span><span>1000</span><span>2000+</span>
+
+                    <h2>Émissions par Territoire DROM-COM</h2>
+                    <div class="drom-controls">
+                        <span id="year-display-drom">Chargement...</span><br>
+                        <input type="range" id="yearSliderDrom" min="2017" max="2024" step="1" value="2017">
                     </div>
+                    <div class="map-legend-container">
+
+                        <div class="drom-legend-gradient"></div>
+                        <div class="map-legend-labels" style="width: 300px;">
+                            <span>0</span><span>1000</span><span>2000+</span>
+                        </div>
+                    </div>
+                <div class="mapemissions-subcontainer">
+                    <svg id="drom-svg" width="960" height="600"></svg>
                 </div>
-                <svg id="drom-svg" width="960" height="600"></svg>
+
             </div>
         </div>
     </main>
@@ -460,13 +517,10 @@
     <footer>
         <p><strong>Tableau de Bord Empreinte Carbone</strong></p>
         <p>Données 1990-2024 | Analyse de l'impact environnemental en France</p>
-        <div class="footer-links">
-            <a href="https://www.developpement-durable.gouv.fr/" target="_blank">ADEME</a>
-            <a href="https://www.statista.com/" target="_blank">Statista</a>
-            <a href="#" target="_blank">Documentation</a>
-        </div>
+        <ul><li>Gabriel PETER</li>
+        <li>Mickaël TALIDEC</li></ul>
         <div class="footer-info">
-            <p>© 2024 - Visualisation interactive avec D3.js | Données: ADEME & Sources officielles</p>
+            <p>Visualisation interactive avec D3.js </p>
         </div>
     </footer>
 
