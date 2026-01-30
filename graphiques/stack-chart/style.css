@@ -1,0 +1,14 @@
+/* Stack Chart Styles */
+#stack-chart {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.stack-area {
+    transition: opacity 0.2s;
+}
+
+.stack-area:hover {
+    opacity: 0.9;
+}

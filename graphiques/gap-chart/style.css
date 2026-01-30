@@ -1,0 +1,10 @@
+/* Gap Chart Styles */
+#gap-chart {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.gap-area {
+    fill-opacity: 0.3;
+}

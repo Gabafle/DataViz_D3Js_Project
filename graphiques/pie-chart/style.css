@@ -1,0 +1,82 @@
+/* Pie Chart Styles */
+#pie {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.pie-slice {
+    transition: opacity 0.2s;
+}
+
+.pie-slice.clickable {
+    cursor: pointer;
+}
+
+.pie-slice:hover {
+    opacity: 0.9;
+}
+
+.labelText {
+    font-size: 11px;
+    fill: #2c3e50;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.polyline {
+    fill: none;
+    stroke: #aaa;
+    stroke-width: 1px;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+#yearSelector {
+    display: block;
+    margin: 12px auto 22px;
+    font-size: 14px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid #ccd6e0;
+    background: #fff;
+    cursor: pointer;
+    transition: border 0.2s;
+}
+
+#yearSelector:hover {
+    border-color: #1976d2;
+}
+
+#backBtn {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 7px 16px;
+    background: linear-gradient(135deg, #2ca02c, #4caf50);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    z-index: 5;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#backBtn:hover {
+    transform: translateX(-50%) scale(1.05);
+}
+
+#infoBubble {
+    border-color: #1976d2;
+    background: #f0f7f0;
+}
+
+#infoBubble.inactive {
+    border-color: #bbb;
+    background: #f9f9f9;
+    opacity: 0.7;
+}

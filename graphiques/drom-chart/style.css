@@ -1,0 +1,40 @@
+/* DROM Chart Styles */
+#drom-svg {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.drom-circle {
+    opacity: 0.8;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.drom-circle:hover {
+    opacity: 1;
+}
+
+#yearSliderDrom {
+    width: 300px;
+    margin-top: 10px;
+}
+
+#year-display-drom {
+    font-weight: bold;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.drom-legend-gradient {
+    width: 300px;
+    height: 15px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #ffffcc, #ffeda0, #fed976, #feb24c, #fd8d3c, #fc4e2a, #e31a1c, #bd0026, #800026);
+    margin-bottom: 10px;
+}
+
+.drom-controls {
+    margin: 15px 0;
+    text-align: center;
+}

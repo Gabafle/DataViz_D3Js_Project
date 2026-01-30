@@ -1,0 +1,17 @@
+/* Sector Chart Styles */
+#sector-pie {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.sector-slice {
+    stroke: white;
+    stroke-width: 2px;
+    transition: opacity 0.2s;
+    cursor: pointer;
+}
+
+.sector-slice:hover {
+    opacity: 0.9;
+}

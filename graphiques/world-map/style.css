@@ -1,0 +1,44 @@
+/* World Map Styles */
+#world-map {
+    display: block;
+    margin: auto;
+    overflow: visible;
+}
+
+.country {
+    stroke: #fff;
+    stroke-width: 0.5px;
+    transition: opacity 0.2s, transform 0.15s;
+    cursor: pointer;
+}
+
+.country:hover {
+    opacity: 0.85;
+    stroke: #333;
+    stroke-width: 1px;
+    transform: scale(1.01);
+}
+
+.map-legend-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 18px;
+    padding-bottom: 8px;
+}
+
+.map-legend-bar {
+    width: 320px;
+    height: 14px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+}
+
+.map-legend-labels {
+    width: 320px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-top: 6px;
+    color: #666;
+}
